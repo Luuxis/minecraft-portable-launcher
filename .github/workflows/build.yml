@@ -62,6 +62,7 @@ jobs:
           go build -ldflags="-s -w" -trimpath -o minecraft-launcher-${{ matrix.name }}${{ matrix.ext }} .
 
       # macOS : créer .app bundle avec icône
+      # macOS : créer .app bundle avec icône + signature ad-hoc
       - name: Create macOS App Bundle
         if: matrix.goos == 'darwin'
         run: |
@@ -69,7 +70,19 @@ jobs:
           mkdir -p "$APP_NAME/Contents/MacOS"
           mkdir -p "$APP_NAME/Contents/Resources"
           
-          mv minecraft-launcher-${{ matrix.name }} "$APP_NAME/Contents/MacOS/MinecraftLauncher"
+          # Renommer le binaire
+          mv minecraft-launcher-${{ matrix.name }} "$APP_NAME/Contents/MacOS/MinecraftLauncher-bin"
+          chmod +x "$APP_NAME/Contents/MacOS/MinecraftLauncher-bin"
+          
+          # Script wrapper qui ouvre Terminal pour lancer la CLI
+          cat > "$APP_NAME/Contents/MacOS/MinecraftLauncher" << 'WRAPPER'
+          #!/bin/bash
+          DIR="$(cd "$(dirname "$0")" && pwd)"
+          osascript -e "tell application \"Terminal\" to do script \"'$DIR/MinecraftLauncher-bin'; exit\""
+          osascript -e "tell application \"Terminal\" to activate"
+          WRAPPER
+          chmod +x "$APP_NAME/Contents/MacOS/MinecraftLauncher"
+          
           cp favicon.icns "$APP_NAME/Contents/Resources/AppIcon.icns"
           
           cat > "$APP_NAME/Contents/Info.plist" << EOF
@@ -91,11 +104,19 @@ jobs:
               <string>1.0</string>
               <key>CFBundleShortVersionString</key>
               <string>1.0</string>
+              <key>LSMinimumSystemVersion</key>
+              <string>10.13</string>
+              <key>NSHighResolutionCapable</key>
+              <true/>
           </dict>
           </plist>
           EOF
           
-          zip -r minecraft-launcher-${{ matrix.name }}.zip "$APP_NAME"
+          # Signature ad-hoc pour éviter "app endommagée"
+          codesign --force --deep --sign - "$APP_NAME"
+          
+          # Créer DMG au lieu de ZIP (meilleur pour macOS)
+          hdiutil create -volname "Minecraft Launcher" -srcfolder "$APP_NAME" -ov -format UDZO "minecraft-launcher-${{ matrix.name }}.dmg"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -103,7 +124,7 @@ jobs:
           name: minecraft-launcher-${{ matrix.name }}
           path: |
             minecraft-launcher-*${{ matrix.ext }}
-            *.zip
+            *.dmg
           if-no-files-found: error
 
   release:
