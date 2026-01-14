@@ -86,11 +86,6 @@ jobs:
           </plist>
           EOF
 
-      - name: Zip macOS .app properly
-        if: runner.os == 'macOS'
-        run: |
-          ditto -c -k --sequesterRsrc --keepParent Minecraft.app Minecraft-macos.zip
-
       # -----------------------
       # UPLOAD ARTIFACTS
       # -----------------------
