@@ -101,4 +101,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Minecraft-macos
-          path: Minecraft-macos.zip
+          path: Minecraft.app
