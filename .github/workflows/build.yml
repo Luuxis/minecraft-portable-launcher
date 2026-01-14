@@ -8,6 +8,7 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, macos-latest]
+
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -28,18 +29,16 @@ jobs:
 
       - name: Generate Windows resources
         if: runner.os == 'Windows'
-        run: |
-          rsrc -ico icon.ico -o rsrc_windows.syso
+        run: rsrc -ico icon.ico -o rsrc_windows.syso
 
       - name: Build Windows executable
         if: runner.os == 'Windows'
-        run: |
-          go build -o Minecraft.exe
+        run: go build -o Minecraft.exe
 
       # -----------------------
       # MACOS BUILD
       # -----------------------
-      - name: Build macOS binary
+      - name: Build macOS binary (ARM64)
         if: runner.os == 'macOS'
         run: |
           GOOS=darwin GOARCH=arm64 go build -o Minecraft
@@ -47,12 +46,14 @@ jobs:
       - name: Create macOS .app bundle
         if: runner.os == 'macOS'
         run: |
-          mkdir -p Minecraft/Minecraft.app/Contents/{MacOS,Resources}
-          cp Minecraft Minecraft/Minecraft.app/Contents/MacOS/
-          chmod +x Minecraft/Minecraft.app/Contents/MacOS/Minecraft
-          cp favicon.icns Minecraft/Minecraft.app/Contents/Resources/
+          mkdir -p Minecraft.app/Contents/{MacOS,Resources}
 
-          cat <<EOF > Minecraft/Minecraft.app/Contents/Info.plist
+          cp Minecraft Minecraft.app/Contents/MacOS/
+          chmod +x Minecraft.app/Contents/MacOS/Minecraft
+
+          cp favicon.icns Minecraft.app/Contents/Resources/
+
+          cat <<EOF > Minecraft.app/Contents/Info.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -70,11 +71,25 @@ jobs:
             <key>CFBundleIconFile</key>
             <string>favicon</string>
 
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+
             <key>CFBundleVersion</key>
             <string>1.0</string>
+
+            <key>CFBundleShortVersionString</key>
+            <string>1.0.0</string>
+
+            <key>LSMinimumSystemVersion</key>
+            <string>11.0</string>
           </dict>
           </plist>
           EOF
+
+      - name: Zip macOS .app properly
+        if: runner.os == 'macOS'
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent Minecraft.app Minecraft-macos.zip
 
       # -----------------------
       # UPLOAD ARTIFACTS
@@ -91,4 +106,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Minecraft-macos
-          path: Minecraft.app
+          path: Minecraft-macos.zip
