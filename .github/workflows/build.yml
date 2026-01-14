@@ -1,0 +1,94 @@
+name: Build Go App
+
+on:
+  push:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      # -----------------------
+      # WINDOWS BUILD
+      # -----------------------
+      - name: Install rsrc (Windows)
+        if: runner.os == 'Windows'
+        run: go install github.com/akavel/rsrc@latest
+
+      - name: Generate Windows resources
+        if: runner.os == 'Windows'
+        run: |
+          rsrc -ico icon.ico -o rsrc_windows.syso
+
+      - name: Build Windows executable
+        if: runner.os == 'Windows'
+        run: |
+          go build -o MyApp.exe
+
+      # -----------------------
+      # MACOS BUILD
+      # -----------------------
+      - name: Build macOS binary
+        if: runner.os == 'macOS'
+        run: |
+          GOOS=darwin GOARCH=arm64 go build -o MyApp
+
+      - name: Create macOS .app bundle
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p MyApp.app/Contents/{MacOS,Resources}
+          cp MyApp MyApp.app/Contents/MacOS/
+          chmod +x MyApp.app/Contents/MacOS/MyApp
+          cp favicon.icns MyApp.app/Contents/Resources/
+
+          cat <<EOF > MyApp.app/Contents/Info.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+           "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleName</key>
+            <string>MyApp</string>
+
+            <key>CFBundleExecutable</key>
+            <string>MyApp</string>
+
+            <key>CFBundleIdentifier</key>
+            <string>com.example.myapp</string>
+
+            <key>CFBundleIconFile</key>
+            <string>favicon</string>
+
+            <key>CFBundleVersion</key>
+            <string>1.0</string>
+          </dict>
+          </plist>
+          EOF
+
+      # -----------------------
+      # UPLOAD ARTIFACTS
+      # -----------------------
+      - name: Upload Windows artifact
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyApp-windows
+          path: MyApp.exe
+
+      - name: Upload macOS artifact
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyApp-macos
+          path: MyApp.app
