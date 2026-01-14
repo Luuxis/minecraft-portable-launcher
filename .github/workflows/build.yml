@@ -34,7 +34,7 @@ jobs:
       - name: Build Windows executable
         if: runner.os == 'Windows'
         run: |
-          go build -o MyApp.exe
+          go build -o Minecraft.exe
 
       # -----------------------
       # MACOS BUILD
@@ -42,30 +42,30 @@ jobs:
       - name: Build macOS binary
         if: runner.os == 'macOS'
         run: |
-          GOOS=darwin GOARCH=arm64 go build -o MyApp
+          GOOS=darwin GOARCH=arm64 go build -o Minecraft
 
       - name: Create macOS .app bundle
         if: runner.os == 'macOS'
         run: |
-          mkdir -p MyApp.app/Contents/{MacOS,Resources}
-          cp MyApp MyApp.app/Contents/MacOS/
-          chmod +x MyApp.app/Contents/MacOS/MyApp
-          cp favicon.icns MyApp.app/Contents/Resources/
+          mkdir -p Minecraft/Minecraft.app/Contents/{MacOS,Resources}
+          cp Minecraft Minecraft/Minecraft.app/Contents/MacOS/
+          chmod +x Minecraft/Minecraft.app/Contents/MacOS/Minecraft
+          cp favicon.icns Minecraft/Minecraft.app/Contents/Resources/
 
-          cat <<EOF > MyApp.app/Contents/Info.plist
+          cat <<EOF > Minecraft/Minecraft.app/Contents/Info.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
             <key>CFBundleName</key>
-            <string>MyApp</string>
+            <string>Minecraft</string>
 
             <key>CFBundleExecutable</key>
-            <string>MyApp</string>
+            <string>Minecraft</string>
 
             <key>CFBundleIdentifier</key>
-            <string>com.example.myapp</string>
+            <string>fr.luuxis.minecraft</string>
 
             <key>CFBundleIconFile</key>
             <string>favicon</string>
@@ -83,12 +83,12 @@ jobs:
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
-          name: MyApp-windows
-          path: MyApp.exe
+          name: Minecraft-windows
+          path: Minecraft.exe
 
       - name: Upload macOS artifact
         if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
-          name: MyApp-macos
-          path: MyApp.app
+          name: Minecraft-macos
+          path: Minecraft.app
